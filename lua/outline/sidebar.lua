@@ -387,14 +387,17 @@ function Sidebar:__goto_location(change_focus)
     vim.fn.win_execute(self.code.win, 'normal! zz')
   end
 
+  -- unfold on goto
   if change_focus and cfg.o.outline_window.unfold_on_goto ~= nil then
     vim.fn.win_gotoid(self.code.win)
     -- check folding status at the target line. Only unfold when a fold exists.
     -- Avoids E490: no fold found
-    local fold_status = vim.api.nvim_eval("foldclosed(" .. node.line + 1 .. ")")
-    if fold_status ~= -1 then
-      vim.schedule(function() perform_key(cfg.o.outline_window.unfold_on_goto) end)
-    end
+    -- local fold_status = vim.api.nvim_eval("foldclosed(" .. node.line + 1 .. ")")
+    -- if fold_status ~= -1 then
+    -- NOTE: obtaining fold status is not needed when using zv to unfold as zv 
+    -- will never complain.
+    vim.schedule(function() perform_key("zv") end)
+    --end
   elseif change_focus then
     utils.flash_highlight(
       self.code.win,
