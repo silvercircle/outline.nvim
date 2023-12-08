@@ -28,6 +28,14 @@ local Sidebar = {}
 ---@field provider outline.Provider?
 ---@field preview outline.Preview|outline.LivePreview
 
+local function perform_key(key)
+  local mode = vim.api.nvim_get_mode().mode
+  if mode == 'i' then
+    key = '<c-o>' .. key
+  end
+  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(key, true, false, true), mode, false)
+end
+
 function Sidebar:new(id)
   return setmetatable({
     id = id,
@@ -334,9 +342,9 @@ function Sidebar:__refresh()
     return
   end
   local ft = vim.api.nvim_buf_get_option(buf, 'ft')
-  local nolisted = vim.api.nvim_buf_get_option(buf, 'buflisted')
+  local nolisted = not vim.api.nvim_buf_get_option(buf, 'buflisted')
   local hidden = vim.api.nvim_buf_get_option(buf, 'bufhidden')
-  if ft == 'OutlineHelp' or nolisted or hidden then
+  if ft == 'OutlineHelp' or nolisted or hidden ~= "" then
     return
   end
   self.provider = providers.find_provider()
@@ -379,14 +387,21 @@ function Sidebar:__goto_location(change_focus)
     vim.fn.win_execute(self.code.win, 'normal! zz')
   end
 
-  utils.flash_highlight(
-    self.code.win,
-    node.line + 1,
-    cfg.o.outline_window.jump_highlight_duration,
-    'OutlineJumpHighlight'
-  )
-
-  if change_focus then
+  if change_focus and cfg.o.outline_window.unfold_on_goto ~= nil then
+    vim.fn.win_gotoid(self.code.win)
+    -- check folding status at the target line. Only unfold when a fold exists.
+    -- Avoids E490: no fold found
+    local fold_status = vim.api.nvim_eval("foldclosed(" .. node.line + 1 .. ")")
+    if fold_status ~= -1 then
+      vim.schedule(function() perform_key(cfg.o.outline_window.unfold_on_goto) end)
+    end
+  elseif change_focus then
+    utils.flash_highlight(
+      self.code.win,
+      node.line + 1,
+      cfg.o.outline_window.jump_highlight_duration,
+      'OutlineJumpHighlight'
+    )
     vim.fn.win_gotoid(self.code.win)
   end
 end
