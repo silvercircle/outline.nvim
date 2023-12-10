@@ -109,8 +109,9 @@ function Sidebar:initial_handler(response, opts)
 
   self:initial_setup(opts)
 
-  local items = parser.parse(response, self.code.buf)
-  self.items = items
+  --local items = parser.parse(response, self.code.buf) FIX: ?
+  self.items = parser.parse(response, self.code.buf)
+  --self.items = items
 
   self:_update_lines(true)
   if not cfg.o.outline_window.focus_on_open or not opts.focus_outline then
