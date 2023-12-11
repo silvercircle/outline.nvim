@@ -16,7 +16,7 @@ local function setup_global_autocmd()
     vim.api.nvim_create_autocmd(cfg.o.outline_items.auto_update_events.items, {
       pattern = '*',
       callback = function()
-        M._sidebar_do('__refresh')
+        M._sidebar_do('_refresh')
       end,
     })
   end

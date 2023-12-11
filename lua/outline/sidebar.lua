@@ -362,9 +362,11 @@ end
 
 -- stylua: ignore start
 -- TODO: Is this still needed?
---function Sidebar:_refresh()
+function Sidebar:_refresh()
+  vim.schedule(function() self:__refresh() end)
+  --vim.defer_fn(function() self:__refresh() end, 50)
 --  (utils.debounce(function() self:__refresh() end, 100))()
---end
+end
 -- stylua: ignore end
 
 function Sidebar:no_providers_ui()
