@@ -362,9 +362,9 @@ end
 
 -- stylua: ignore start
 -- TODO: Is this still needed?
-function Sidebar:_refresh()
-  (utils.debounce(function() self:__refresh() end, 100))()
-end
+--function Sidebar:_refresh()
+--  (utils.debounce(function() self:__refresh() end, 100))()
+--end
 -- stylua: ignore end
 
 function Sidebar:no_providers_ui()
