@@ -397,7 +397,8 @@ function Sidebar:__goto_location(change_focus)
     return
   end
 
-  vim.api.nvim_win_set_cursor(self.code.win, { node.line + 1, node.character })
+  pcall(vim.api.nvim_win_set_cursor, self.code.win, { node.line + 1, node.character })
+  --vim.api.nvim_win_set_cursor(self.code.win, { node.line + 1, node.character })
 
   if cfg.o.outline_window.center_on_jump then
     vim.fn.win_execute(self.code.win, 'normal! zz')
