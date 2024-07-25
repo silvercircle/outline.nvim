@@ -27,7 +27,7 @@ be usable for outline.nvim using this script:
 
 > *A sidebar with a tree-like outline of symbols from your code, powered by LSP.*
 
-https://github.com/hedyhli/outline.nvim/assets/50042066/88fbb3cf-27c1-4115-8a08-ba2e86c7fe9d
+https://github.com/hedyhli/outline.nvim/assets/50042066/f66fa661-b66a-4b48-84e8-37920a3d8d2c
 
 **Features**
 
@@ -127,7 +127,8 @@ This allows Lazy.nvim to lazy-load the plugin on commands `Outline`,
 Call the setup function with your configuration options.
 
 Note that a call to `.setup()` is **required** for this plugin to work
-(otherwise you might see this error: [simrat39/symbols-outline.nvim#213](simrat39/symbols-outline.nvim#213)).
+(otherwise you might see this error:
+[simrat39/symbols-outline.nvim#213](https://github.com/simrat39/symbols-outline.nvim/issues/213)).
 
 ```lua
 require("outline").setup({})
@@ -390,9 +391,14 @@ Pass a table to the setup call with your configuration options.
     -- You can use a custom function that returns the icon for each symbol kind.
     -- This function takes a kind (string) as parameter and should return an
     -- icon as string.
+    ---@param kind string Key of the icons table below
+    ---@param bufnr integer Code buffer
+    ---@returns string|boolean The icon string to display, such as "f", or `false`
+    ---                        to fallback to `icon_source`.
     icon_fetcher = nil,
-    -- 3rd party source for fetching icons. Fallback if icon_fetcher returned
-    -- empty string. Currently supported values: 'lspkind'
+    -- 3rd party source for fetching icons. This is used as a fallback if
+    -- icon_fetcher returned an empty string.
+    -- Currently supported values: 'lspkind'
     icon_source = nil,
     -- The next fallback if both icon_fetcher and icon_source has failed, is
     -- the custom mapping of icons specified below. The icons table is also
@@ -491,12 +497,14 @@ The current list of tested providers are:
 External providers:
 - [Asciidoc](https://github.com/msr1k/outline-asciidoc-provider.nvim) (no external requirements)
 
+<details>
+  <summary>How to implement an external provider</summary>
 
-### External providers
-
-External providers can be appended to the `providers.priority` list. Each
-item in the list is appended to `"outline.providers.<item>"` to form an import
-path, for use as a provider.
+External providers are separate plugins that users can install in addition to
+`outline.nvim`. Their names can be appended to the `providers.priority` list in
+the outline.nvim config. Each item in the `providers.priority` list is used
+to form an import path `"outline.providers.<item>"` and then `require()`'ed for
+use as a provider.
 
 External providers from plugins should define the provider module at
 `lua/outline/providers/<name>.lua` with these functions:
@@ -523,14 +531,16 @@ External providers from plugins should define the provider module at
   `opts` table.
   - param `opts` can be passed to `callback` without processing
 
-  Each symbol table in the list of symbols should have these fields:
-  - name: string
-  - kind: integer
+  The function should return a list of "symbol tables".
+
+  Each symbol table should have these fields:
+  - name: string -- displayed in the outline
+  - kind: integer -- determines the icon to use
   - selectionRange: table with fields `start` and `end`, each have fields
-  `line` and `character`, each integers
-  - range: table with fields `start` and `end`, each have fields `line` and
-  `character`, each integers
-  - children: list of table of symbols
+  `line` and `character`, each integers:
+  `{ start = { line = ?, character = ? }, ['end'] = { line = ?, character = ? } }`
+  - range: same as selectionRange
+  - children: list of symbol tables
   - detail: (optional) string, shown for `outline_items.show_symbol_details`
 
 The built-in [markdown](./lua/outline/providers/markdown.lua) provider is a
@@ -539,8 +549,8 @@ lines and uses regex; the built-in [norg](./lua/outline/providers/norg.lua)
 provider is an example which uses treesitter.
 
 All providers should support at least nvim 0.7. You can make use of
-`_G._outline_nvim_has` with fields `[8]` and `[9]` equivalent to
-`vim.fn.has('nvim-0.8') == 1` and  `vim.fn.has('nvim-0.9') == 1` respectively.
+`_G._outline_nvim_has` with fields `[8]`, `[9]`, and `[10]`. For instance,
+`_G._outline_nvim_has[8]` is equivalent to: `vim.fn.has('nvim-0.8') == 1`.
 
 If a higher nvim version is required, it is recommended to check for this
 requirement in the `supports_buffer` function.
@@ -553,14 +563,16 @@ your provider is active. See the built-in
 Other functions such as goto-location may also be delegated to providers in the
 future.
 
+</details>
+
 
 ## Commands
 
 - **:Outline[!]** (✓ bang ✓ mods)
 
   Toggle outline. With bang (`!`) the cursor focus stays in your
-  original window after opening the outline window. Set `focus_on_open = true` to
-  always use this behaviour.
+  original window after opening the outline window. Set
+  `outline_window.focus_on_open = false` to always use this behaviour.
 
   You can use command modifiers `topleft`/`aboveleft`/`botright`/`belowright`
   on this command to control how the outline window split is created. Other
@@ -577,8 +589,8 @@ future.
 - **:OutlineOpen[!]** (✓ bang ✓ mods)
 
   Open outline. With bang (`!`) the cursor focus stays in your original
-  window after opening the outline window. Set `focus_on_open = true` to always
-  use this behaviour.
+  window after opening the outline window. Set `outline_window.focus_on_open =
+  false` to always use this behaviour.
 
   You can use command modifiers `topleft`/`aboveleft`/`botright`/`belowright`
   on this command to control how the outline window split is created. Other
@@ -590,6 +602,9 @@ future.
 :belowright OutlineOpen  " opens with 'belowright vsplit'
 :OutlineOpen             " opens with 'topleft vsplit'
 ```
+
+  If the outline is already open, running this command without bang will focus
+  on the outline window.
 
 - **:OutlineClose**: Close outline
 
@@ -886,6 +901,21 @@ symbols = {
 }
 ```
 
+  The `icon_fetcher` function may also accept a second parameter, the buffer
+  number of the code buffer. For example, you can use it to determine the icon
+  to use based on the filetype.
+
+```lua
+symbols = {
+  icon_fetcher = function(kind, bufnr)
+    local ft = vim.api.nvim_buf_get_option(bufnr, 'ft')
+    -- ...
+  end,
+}
+```
+
+  See [this section](#custom-icons) for other examples of this function.
+
 - You can customize the split command used for creating the outline window split
   using `outline_window.split_command`, such as `"topleft vsp"`. See `:h windows`
 
@@ -1042,7 +1072,7 @@ that simply returns in plain text, the first letter of the given kind.
 
 ```lua
 symbols = {
-  icon_fetcher = function(kind) return kind:sub(1,1) end
+  icon_fetcher = function(kind, bufnr) return kind:sub(1,1) end,
 }
 ```
 
@@ -1051,13 +1081,24 @@ and `icons` as fallback.
 
 <div align=center><img width="500" alt="outline with plain text icons" src="https://github.com/hedyhli/outline.nvim/assets/50042066/655b534b-da16-41a7-926e-f14475376a04"></div>
 
+### Different icons based on filetype
+
+```lua
+symbols = {
+  icon_fetcher = function(kind, bufnr)
+    local ft = vim.api.nvim_buf_get_option(bufnr, 'ft')
+    -- ...
+  end,
+}
+```
+
 ### Disable icons
 
 Disable all icons:
 
 ```lua
 symbols = {
-  icon_fetcher = function(_) return "" end,
+  icon_fetcher = function() return "" end,
 }
 ```
 
@@ -1065,7 +1106,7 @@ Disable icons for specific kinds, and for others use lspkind:
 
 ```lua
 symbols = {
-  icon_fetcher = function(k)
+  icon_fetcher = function(k, buf)
     if k == 'String' then
       return ""
     end
@@ -1076,6 +1117,24 @@ symbols = {
 ```
 
 <div align=center><img width="500" alt="outline with disabled icon for String" src="https://github.com/hedyhli/outline.nvim/assets/50042066/26d258c6-9530-43d4-b88b-963304e3bf2d"></div>
+
+### Disable icons for a specific filetype
+
+In this example, icons are disabled for markdown, and `lspkind` is used for
+other filetypes.
+
+```lua
+symbols = {
+  icon_fetcher = function(k, buf)
+    local ft = vim.api.nvim_buf_get_option(buf, "ft")
+    if ft == 'markdown' then
+      return ""
+    end
+    return false
+  end,
+  icon_source = "lspkind",
+}
+```
 
 ### Live, editable previews
 
@@ -1125,17 +1184,17 @@ was within a markdown code block, so what was previously not supposed to be
 code is now highlighted as code).
 
 If this poses a problem for you, you should try out the
-[live-preview](#live-editable-previews) feature, uses the code buffer directly
-for displaying the preview.
+[live-preview](#live-editable-previews) feature, which uses the code buffer
+directly for displaying the preview.
 
 ### Many outlines
 
-Outline.nvim does not support multiple outline windows in the same tabpage as
-of now However, this feature is
-[planned](https://github.com/hedyhli/outline.nvim/issues/26), and you can use a
-single outline that auto-updates on buffer switches.
-
-That said, per-tabpage outline is supported.
+Outline.nvim supports opening independent outline windows for different
+tabpages, but does not support multiple outline windows in the same tabpage as
+of now. However, this feature is
+[planned](https://github.com/hedyhli/outline.nvim/issues/26). Alternatively, you
+can use a single outline that auto-updates on buffer switches, which is turned
+on by default.
 
 ## Related plugins
 
