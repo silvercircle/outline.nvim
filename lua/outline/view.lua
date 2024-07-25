@@ -57,6 +57,7 @@ function View:setup_view(split_command)
   -- buffer stuff
   local tab = vim.api.nvim_get_current_tabpage()
   vim.api.nvim_buf_set_name(self.buf, 'OUTLINE_' .. tostring(tab))
+  vim.api.nvim_buf_set_option(self.buf, 'filetype', 'Outline')
   vim.api.nvim_buf_set_option(self.buf, 'modifiable', false)
 
   if cfg.o.outline_window.show_numbers or cfg.o.outline_window.show_relative_numbers then
