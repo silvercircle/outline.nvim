@@ -397,8 +397,13 @@ function Sidebar:__goto_location(change_focus)
     return
   end
 
-  pcall(vim.api.nvim_win_set_cursor, self.code.win, { node.line + 1, node.character })
-  --vim.api.nvim_win_set_cursor(self.code.win, { node.line + 1, node.character })
+  if not vim.api.nvim_win_is_valid(self.code.win) then
+    vim.notify("outline.nvim: Code window closed", vim.log.levels.WARN)
+    return
+  end
+
+  --pcall(vim.api.nvim_win_set_cursor, self.code.win, { node.line + 1, node.character })
+  vim.api.nvim_win_set_cursor(self.code.win, { node.line + 1, node.character })
 
   if cfg.o.outline_window.center_on_jump then
     vim.fn.win_execute(self.code.win, 'normal! zz')
