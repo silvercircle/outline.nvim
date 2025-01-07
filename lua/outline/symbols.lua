@@ -47,13 +47,16 @@ end
 
 -- use a stub if lspkind is missing or not configured
 local lspkind = {
-  symbolic = function(kind, opts) return '' end
+  symbolic = function(kind, opts)
+    return ''
+  end,
 }
 
 ---@param kind string|integer
 ---@param bufnr integer
+---@param symbol outline.Symbol
 ---@return string icon
-function M.icon_from_kind(kind, bufnr)
+function M.icon_from_kind(kind, bufnr, symbol)
   local kindstr = kind
   if type(kind) ~= 'string' then
     kindstr = M.kinds[kind]
@@ -63,7 +66,7 @@ function M.icon_from_kind(kind, bufnr)
   end
 
   if type(cfg.o.symbols.icon_fetcher) == 'function' then
-    local icon = cfg.o.symbols.icon_fetcher(kindstr, bufnr)
+    local icon = cfg.o.symbols.icon_fetcher(kindstr, bufnr, symbol)
     -- Allow returning empty string
     if icon then
       return icon
