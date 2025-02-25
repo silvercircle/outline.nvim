@@ -327,9 +327,14 @@ function Sidebar:refresh_handler(response)
     return
   end
 
+  local curbuf = vim.api.nvim_get_current_buf()
+  if curbuf == self.view.buf then
+    return
+  end
+
   local newbuf = self:refresh_setup()
 
-  local items = parser.parse(response, vim.api.nvim_get_current_buf())
+  local items = parser.parse(response, curbuf)
   self:_merge_items(items)
 
   local update_cursor = newbuf or cfg.o.outline_items.auto_set_cursor
@@ -356,7 +361,9 @@ function Sidebar:__refresh()
   self.provider, self.provider_info = providers.find_provider()
   if self.provider then
     self.provider.request_symbols(function(res)
-      self:refresh_handler(res)
+      if self.view:is_open() then
+        self:refresh_handler(res)
+      end
     end, nil, self.provider_info)
     return
   end
